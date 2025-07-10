@@ -20,12 +20,14 @@ const (
 	// 批处理配置
 	BATCH_SIZE                = 3 // 每次获取3个任务
 	MAX_404S_BEFORE_GIVING_UP = 5
-	TASK_FETCH_INTERVAL       = 180 // 180秒固定间隔获取任务
-	QUEUE_LOG_INTERVAL        = 30  // 30秒打印日志时间间隔
+	TASK_FETCH_INTERVAL       = 1  // 180秒固定间隔获取任务
+	QUEUE_LOG_INTERVAL        = 30 // 30秒打印日志时间间隔
 
 	// 任务API地址
-	TASKS_API_URL    = "https://beta.orchestrator.nexus.xyz/v3/tasks"
-	TASKS_SUBMIT_URL = "https://beta.orchestrator.nexus.xyz/v3/tasks/submit"
+	// TASKS_API_URL    = "https://beta.orchestrator.nexus.xyz/v3/tasks"
+	// TASKS_SUBMIT_URL = "https://beta.orchestrator.nexus.xyz/v3/tasks/submit"
+	TASKS_API_URL    = "http://192.168.1.118:8080/v3/tasks"
+	TASKS_SUBMIT_URL = "http://192.168.1.118:8080/v3/tasks/submit"
 
 	// 队列配置 - 默认值，可通过配置文件覆盖
 	DEFAULT_TASK_QUEUE_CAPACITY = 1000 // 默认任务队列容量
