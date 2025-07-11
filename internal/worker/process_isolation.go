@@ -315,14 +315,17 @@ func ProcessWorker(ctx context.Context, id int, priv ed25519.PrivateKey, taskQue
 			utils.LogWithTime("[process-worker-%d] 任务 %s PublicInputs 长度: %d 字节", id, task.TaskID, len(task.PublicInputs))
 
 			// 使用进程隔离执行证明
+			startTime := time.Now()
 			proof, err := prover.Prove(task)
+			duration := time.Since(startTime)
+
 			if err != nil {
-				utils.LogWithTime("[process-worker-%d] ❌ 任务 %s 证明计算失败: %v", id, task.TaskID, err)
+				utils.LogWithTime("[process-worker-%d] ❌ 任务 %s 证明计算失败(用时%.2f秒): %v", id, task.TaskID, duration.Seconds(), err)
 				taskQueue.MarkFailed()
 				continue
 			}
 
-			utils.LogWithTime("[process-worker-%d] 任务 %s Proof 长度: %d 字节", id, task.TaskID, len(proof))
+			utils.LogWithTime("[process-worker-%d] ✅ 任务 %s 证明计算成功(用时%.2f秒) Proof 长度: %d 字节", id, task.TaskID, duration.Seconds(), len(proof))
 
 			// 增加证明计数器
 			incProved()

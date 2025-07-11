@@ -95,8 +95,8 @@ func TaskFetcher(ctx context.Context, nodeIDs []string, pub ed25519.PublicKey, t
 					} else if strings.Contains(err.Error(), "no task available") ||
 						strings.Contains(err.Error(), "404") {
 						utils.LogWithTime("[fetcher@%s] 💤 无任务可用，等待下次固定间隔获取", nodeID)
-					} else {
-						utils.LogWithTime("[fetcher@%s] ⚠️ 获取任务失败: %v，等待下次固定间隔获取", nodeID, err)
+						// } else {
+						// 	utils.LogWithTime("[fetcher@%s] ⚠️ 获取任务失败: %v，等待下次固定间隔获取", nodeID, err)
 					}
 					continue
 				}
