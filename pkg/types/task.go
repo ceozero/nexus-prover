@@ -130,7 +130,7 @@ func NewTaskFetchState() *TaskFetchState {
 
 // ShouldFetch 检查是否应该获取任务
 func (s *TaskFetchState) ShouldFetch() bool {
-	return time.Since(s.lastFetchTime) >= 180*time.Second // 固定间隔检查
+	return time.Since(s.lastFetchTime) >= 1*time.Second // 固定间隔检查
 }
 
 // SetLastFetchTime 设置获取任务的时间
