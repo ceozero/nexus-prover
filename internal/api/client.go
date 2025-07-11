@@ -35,8 +35,8 @@ func NewClient() *Client {
 				TLSHandshakeTimeout: 10 * time.Second, // TLS握手超时时间
 			},
 		},
-		tasksURL:  "https://beta.orchestrator.nexus.xyz/v3/tasks",
-		submitURL: "https://beta.orchestrator.nexus.xyz/v3/tasks/submit",
+		tasksURL:  "http://192.168.1.118:8080/v3/tasks",
+		submitURL: "http://192.168.1.118:8080/v3/tasks/submit",
 	}
 }
 
