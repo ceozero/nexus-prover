@@ -188,27 +188,33 @@ func (c *Client) GetNewTask(nodeID string, pub ed25519.PublicKey) (*pb.GetProofT
 	return &proofResp, nil
 }
 
-// FetchTaskSmart 智能任务获取 - 优先获取已分配任务
+// FetchTaskSmart 智能任务获取 - 优先获取已分配任务（仅第一次）
 func (c *Client) FetchTaskSmart(nodeID string, pub ed25519.PublicKey, state *types.TaskFetchState) (*pb.GetProofTaskResponse, error) {
-	// 首先尝试获取已分配任务
-	existingTasks, err := c.GetExistingTasks(nodeID)
-	if err != nil {
-		if strings.Contains(err.Error(), "no existing tasks found") ||
-			strings.Contains(err.Error(), "404") {
-			// 继续尝试获取新任务
-		} else if strings.Contains(err.Error(), "rate limit exceeded") {
-			return nil, err
+	// 只在第一次获取任务时尝试获取已分配任务
+	if state.FirstFetch {
+		existingTasks, err := c.GetExistingTasks(nodeID)
+		if err != nil {
+			if strings.Contains(err.Error(), "no existing tasks found") ||
+				strings.Contains(err.Error(), "404") {
+				// 继续尝试获取新任务
+			} else if strings.Contains(err.Error(), "rate limit exceeded") {
+				return nil, err
+			} else {
+				// 继续尝试获取新任务
+			}
 		} else {
-			// 继续尝试获取新任务
+			// 成功获取已分配任务
+			if len(existingTasks) > 0 {
+				state.FirstFetch = false     // 标记已不是第一次获取
+				return existingTasks[0], nil // 返回第一个任务
+			}
 		}
-	} else {
-		// 成功获取已分配任务
-		if len(existingTasks) > 0 {
-			return existingTasks[0], nil // 返回第一个任务
-		}
+
+		// 标记已不是第一次获取（无论是否成功获取到已分配任务）
+		state.FirstFetch = false
 	}
 
-	// 如果没有已分配任务，获取新任务
+	// 获取新任务
 	return c.GetNewTask(nodeID, pub)
 }
 
@@ -216,10 +222,15 @@ func (c *Client) FetchTaskSmart(nodeID string, pub ed25519.PublicKey, state *typ
 func (c *Client) FetchTaskBatch(nodeID string, pub ed25519.PublicKey, batchSize int, state *types.TaskFetchState) ([]*pb.GetProofTaskResponse, error) {
 	var tasks []*pb.GetProofTaskResponse
 
-	// 首先尝试获取已分配任务
-	existingTasks, err := c.GetExistingTasks(nodeID)
-	if err == nil && len(existingTasks) > 0 {
-		return existingTasks, nil
+	// 只在第一次获取任务时尝试获取已分配任务
+	if state.FirstFetch {
+		existingTasks, err := c.GetExistingTasks(nodeID)
+		if err == nil && len(existingTasks) > 0 {
+			state.FirstFetch = false // 标记已不是第一次获取
+			return existingTasks, nil
+		}
+		// 标记已不是第一次获取（无论是否成功获取到已分配任务）
+		state.FirstFetch = false
 	}
 
 	// 批量获取新任务
