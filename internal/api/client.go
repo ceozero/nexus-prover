@@ -40,45 +40,6 @@ func NewClient() *Client {
 	}
 }
 
-// FetchTask 获取任务（protobuf POST）
-func (c *Client) FetchTask(nodeID string, pub ed25519.PublicKey) (*pb.GetProofTaskResponse, error) {
-	req := &pb.GetProofTaskRequest{
-		NodeId:           nodeID,
-		NodeType:         pb.NodeType_CLI_PROVER,
-		Ed25519PublicKey: []byte(pub),
-	}
-
-	data, err := proto.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.httpClient.Post(c.tasksURL, "application/octet-stream", bytes.NewReader(data))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	respData, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode == 429 {
-		// 速率限制，等待更长时间
-		return nil, fmt.Errorf("rate limit exceeded: %s", string(respData))
-	}
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("fetchTask failed: %s", string(respData))
-	}
-
-	var proofResp pb.GetProofTaskResponse
-	if err := proto.Unmarshal(respData, &proofResp); err != nil {
-		return nil, err
-	}
-	return &proofResp, nil
-}
-
 // GetExistingTasks 获取已分配任务（优先）
 func (c *Client) GetExistingTasks(nodeID string) ([]*pb.GetProofTaskResponse, error) {
 	// 构造 protobuf body
@@ -188,50 +149,9 @@ func (c *Client) GetNewTask(nodeID string, pub ed25519.PublicKey) (*pb.GetProofT
 	return &proofResp, nil
 }
 
-// FetchTaskSmart 智能任务获取 - 优先获取已分配任务（仅第一次）
-func (c *Client) FetchTaskSmart(nodeID string, pub ed25519.PublicKey, state *types.TaskFetchState) (*pb.GetProofTaskResponse, error) {
-	// 只在第一次获取任务时尝试获取已分配任务
-	if state.FirstFetch {
-		existingTasks, err := c.GetExistingTasks(nodeID)
-		if err != nil {
-			if strings.Contains(err.Error(), "no existing tasks found") ||
-				strings.Contains(err.Error(), "404") {
-				// 继续尝试获取新任务
-			} else if strings.Contains(err.Error(), "rate limit exceeded") {
-				return nil, err
-			} else {
-				// 继续尝试获取新任务
-			}
-		} else {
-			// 成功获取已分配任务
-			if len(existingTasks) > 0 {
-				state.FirstFetch = false     // 标记已不是第一次获取
-				return existingTasks[0], nil // 返回第一个任务
-			}
-		}
-
-		// 标记已不是第一次获取（无论是否成功获取到已分配任务）
-		state.FirstFetch = false
-	}
-
-	// 获取新任务
-	return c.GetNewTask(nodeID, pub)
-}
-
-// FetchTaskBatch 批量获取任务
+// FetchTaskBatch 批量获取新任务
 func (c *Client) FetchTaskBatch(nodeID string, pub ed25519.PublicKey, batchSize int, state *types.TaskFetchState) ([]*pb.GetProofTaskResponse, error) {
 	var tasks []*pb.GetProofTaskResponse
-
-	// 只在第一次获取任务时尝试获取已分配任务
-	if state.FirstFetch {
-		existingTasks, err := c.GetExistingTasks(nodeID)
-		if err == nil && len(existingTasks) > 0 {
-			state.FirstFetch = false // 标记已不是第一次获取
-			return existingTasks, nil
-		}
-		// 标记已不是第一次获取（无论是否成功获取到已分配任务）
-		state.FirstFetch = false
-	}
 
 	// 批量获取新任务
 	for i := 0; i < batchSize; i++ {
@@ -295,8 +215,10 @@ func (c *Client) SubmitProof(task *types.Task, proof []byte, priv ed25519.Privat
 	defer resp.Body.Close()
 
 	respData, _ := ioutil.ReadAll(resp.Body)
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("submitProof failed: %s", string(respData))
+
+	// 接受200 OK和204 No Content作为成功状态
+	if resp.StatusCode != 200 && resp.StatusCode != 204 {
+		return fmt.Errorf("submitProof failed: httpCode:%d, response:%s", resp.StatusCode, string(respData))
 	}
 
 	return nil

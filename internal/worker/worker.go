@@ -14,6 +14,7 @@ import (
 	"nexus-prover/internal/utils"
 	"nexus-prover/pkg/prover"
 	"nexus-prover/pkg/types"
+	pb "nexus-prover/proto"
 )
 
 // 全局统计结构体
@@ -68,7 +69,26 @@ func TaskFetcher(ctx context.Context, nodeIDs []string, pub ed25519.PublicKey, t
 				if !state.ShouldFetch() {
 					continue
 				}
-				tasks, err := apiClient.FetchTaskBatch(nodeID, pub, config.BATCH_SIZE, state)
+
+				var tasks []*pb.GetProofTaskResponse
+				var err error
+
+				// 只在第一次获取任务时尝试获取已分配任务
+				if state.FirstFetch {
+					existingTasks, existingErr := apiClient.GetExistingTasks(nodeID)
+					if existingErr == nil && len(existingTasks) > 0 {
+						tasks = existingTasks
+						utils.LogWithTime("[fetcher@%s] 📦 获取到 %d 个已分配任务", nodeID, len(existingTasks))
+					}
+					// 标记已不是第一次获取（无论是否成功获取到已分配任务）
+					state.FirstFetch = false
+				}
+
+				// 如果没有获取到已分配任务，则批量获取新任务
+				if len(tasks) == 0 {
+					tasks, err = apiClient.FetchTaskBatch(nodeID, pub, config.BATCH_SIZE, state)
+				}
+
 				if err != nil {
 					if utils.IsRateLimitError(err) {
 						utils.LogWithTime("[fetcher@%s] ⏳ 速率限制，等待下次固定间隔获取", nodeID)
