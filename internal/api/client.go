@@ -138,9 +138,9 @@ func (c *Client) GetNewTask(nodeID string, pub ed25519.PublicKey) (*pb.GetProofT
 		return nil, fmt.Errorf("no task available")
 	}
 
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("get new task failed: %s", string(respData))
-	}
+	// if resp.StatusCode != 200 {
+	// 	return nil, fmt.Errorf("get new task failed: %s", string(respData))
+	// }
 
 	var proofResp pb.GetProofTaskResponse
 	if err := proto.Unmarshal(respData, &proofResp); err != nil {
