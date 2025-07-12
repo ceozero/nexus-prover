@@ -14,7 +14,6 @@ import (
 	"nexus-prover/internal/utils"
 	"nexus-prover/pkg/prover"
 	"nexus-prover/pkg/types"
-	pb "nexus-prover/proto"
 )
 
 // 全局统计结构体
@@ -49,6 +48,42 @@ func TaskFetcher(ctx context.Context, nodeIDs []string, pub ed25519.PublicKey, t
 
 	apiClient := api.NewClient()
 
+	// 程序启动时，先为每个节点获取一次已分配任务
+	utils.LogWithTime("[fetcher] 🔍 程序启动，开始获取已分配任务...")
+	for _, nodeID := range nodeIDs {
+		existingTasks, existingErr := apiClient.GetExistingTasks(nodeID)
+		if existingErr == nil && len(existingTasks) > 0 {
+			utils.LogWithTime("[fetcher@%s] 📦 获取到 %d 个已分配任务", nodeID, len(existingTasks))
+
+			// 将已分配任务加入队列
+			added := 0
+			for _, task := range existingTasks {
+				incFetched()
+				internalTask := &types.Task{
+					TaskID:       task.TaskId,
+					ProgramID:    task.ProgramId,
+					PublicInputs: task.PublicInputs,
+					NodeID:       nodeID,
+					CreatedAt:    time.Now(),
+				}
+				if taskQueue.AddTask(internalTask) {
+					added++
+				} else {
+					utils.LogWithTime("[fetcher@%s] ⚠️ 队列已满，已分配任务 %s 丢弃", nodeID, task.TaskId)
+				}
+			}
+			if added > 0 {
+				utils.LogWithTime("[fetcher@%s] � 成功添加 %d 个已分配任务到队列", nodeID, added)
+			}
+		} else if existingErr != nil {
+			utils.LogWithTime("[fetcher@%s] ⚠️ 获取已分配任务失败: %v", nodeID, existingErr)
+		} else {
+			utils.LogWithTime("[fetcher@%s] 💤 无已分配任务", nodeID)
+		}
+	}
+	utils.LogWithTime("[fetcher] ✅ 已分配任务获取完成，开始循环获取新任务...")
+
+	// 主循环：只负责批量获取新任务
 	for {
 		shouldExit := atomic.LoadInt32(acceptingTasks) == 0
 		if shouldExit {
@@ -70,24 +105,8 @@ func TaskFetcher(ctx context.Context, nodeIDs []string, pub ed25519.PublicKey, t
 					continue
 				}
 
-				var tasks []*pb.GetProofTaskResponse
-				var err error
-
-				// 只在第一次获取任务时尝试获取已分配任务
-				if state.FirstFetch {
-					existingTasks, existingErr := apiClient.GetExistingTasks(nodeID)
-					if existingErr == nil && len(existingTasks) > 0 {
-						tasks = existingTasks
-						utils.LogWithTime("[fetcher@%s] 📦 获取到 %d 个已分配任务", nodeID, len(existingTasks))
-					}
-					// 标记已不是第一次获取（无论是否成功获取到已分配任务）
-					state.FirstFetch = false
-				}
-
-				// 如果没有获取到已分配任务，则批量获取新任务
-				if len(tasks) == 0 {
-					tasks, err = apiClient.FetchTaskBatch(nodeID, pub, config.BATCH_SIZE, state)
-				}
+				// 批量获取新任务
+				tasks, err := apiClient.FetchTaskBatch(nodeID, pub, config.BATCH_SIZE, state)
 
 				if err != nil {
 					if utils.IsRateLimitError(err) {
@@ -122,7 +141,9 @@ func TaskFetcher(ctx context.Context, nodeIDs []string, pub ed25519.PublicKey, t
 					}
 				}
 				if added > 0 {
-					utils.LogWithTime("[fetcher@%s] 📥 成功获取并添加 %d 个任务到队列", nodeID, added)
+					utils.LogWithTime("[fetcher@%s] 📥 成功获取并添加 %d 个任务到队列 (获取到%d个)", nodeID, added, len(tasks))
+				} else if len(tasks) > 0 {
+					utils.LogWithTime("[fetcher@%s] ⚠️ 获取到 %d 个任务但全部因队列满被丢弃", nodeID, len(tasks))
 				}
 			}
 			// 每轮遍历所有节点后等待requestDelay秒, 在配置文件中设置为0

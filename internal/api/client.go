@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"nexus-prover/internal/utils"
 	"nexus-prover/pkg/types"
 	pb "nexus-prover/proto"
 
@@ -152,17 +153,21 @@ func (c *Client) GetNewTask(nodeID string, pub ed25519.PublicKey) (*pb.GetProofT
 // FetchTaskBatch 批量获取新任务
 func (c *Client) FetchTaskBatch(nodeID string, pub ed25519.PublicKey, batchSize int, state *types.TaskFetchState) ([]*pb.GetProofTaskResponse, error) {
 	var tasks []*pb.GetProofTaskResponse
+	var rateLimitHit bool
+	var consecutive404Hit bool
 
 	// 批量获取新任务
 	for i := 0; i < batchSize; i++ {
 		task, err := c.GetNewTask(nodeID, pub)
 		if err != nil {
 			if strings.Contains(err.Error(), "rate limit exceeded") {
+				rateLimitHit = true
 				break
 			}
 			if strings.Contains(err.Error(), "no task available") {
 				state.Consecutive404s++
 				if state.Consecutive404s >= 5 {
+					consecutive404Hit = true
 					break
 				}
 				continue
@@ -173,6 +178,17 @@ func (c *Client) FetchTaskBatch(nodeID string, pub ed25519.PublicKey, batchSize 
 		// 成功获取任务
 		tasks = append(tasks, task)
 		state.Consecutive404s = 0 // 重置404计数器
+	}
+
+	// 记录批量获取结果
+	if len(tasks) > 0 {
+		utils.LogWithTime("[batch@%s] 📥 批量获取成功: %d/%d 个任务", nodeID, len(tasks), batchSize)
+	} else if rateLimitHit {
+		utils.LogWithTime("[batch@%s] ⏳ 批量获取被限流中断", nodeID)
+	} else if consecutive404Hit {
+		utils.LogWithTime("[batch@%s] 💤 批量获取因连续404中断 (连续%d次)", nodeID, state.Consecutive404s)
+	} else {
+		utils.LogWithTime("[batch@%s] 💤 批量获取无任务可用", nodeID)
 	}
 
 	return tasks, nil

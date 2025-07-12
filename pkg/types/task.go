@@ -116,17 +116,15 @@ type TaskFetchState struct {
 	lastQueueLogTime time.Time
 	queueLogInterval time.Duration
 	Consecutive404s  int
-	FirstFetch       bool // 是否是第一次获取任务
 }
 
 // NewTaskFetchState 创建新的任务获取状态
 func NewTaskFetchState() *TaskFetchState {
 	return &TaskFetchState{
-		lastFetchTime:    time.Now().Add(-180*time.Second - time.Second), // 允许立即首次获取
+		lastFetchTime:    time.Now().Add(-1 * time.Second), // 允许立即首次获取
 		lastQueueLogTime: time.Now(),
 		queueLogInterval: 30 * time.Second,
 		Consecutive404s:  0,
-		FirstFetch:       true, // 初始化为true，表示是第一次获取
 	}
 }
 

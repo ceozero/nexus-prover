@@ -18,9 +18,9 @@ type Config struct {
 // 常量定义
 const (
 	// 批处理配置
-	BATCH_SIZE                = 3 // 每次获取3个任务
-	MAX_404S_BEFORE_GIVING_UP = 5
-	TASK_FETCH_INTERVAL       = 1  // 180秒固定间隔获取任务
+	BATCH_SIZE                = 10 // 每次获取10个任务 (增加批量大小)
+	MAX_404S_BEFORE_GIVING_UP = 3  // 减少404容忍次数，更快发现问题
+	TASK_FETCH_INTERVAL       = 1  // 1秒间隔获取任务
 	QUEUE_LOG_INTERVAL        = 30 // 30秒打印日志时间间隔
 
 	// 任务API地址
