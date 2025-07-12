@@ -100,14 +100,14 @@ func TaskFetcher(ctx context.Context, nodeIDs []string, pub ed25519.PublicKey, t
 				state := states[i]
 				if state.ShouldPrintLog() {
 					state.SetPrintLogTime()
-					utils.LogWithTime("[fetcher@%s] 🔄 循环检查中，ShouldFetch: %v", nodeID, state.ShouldFetch())
+					// utils.LogWithTime("[fetcher@%s] 🔄 循环检查中，ShouldFetch: %v", nodeID, state.ShouldFetch())
 				}
 				if !state.ShouldFetch() {
 					continue
 				}
 
 				// 批量获取新任务
-				utils.LogWithTime("[fetcher@%s] 🔍 开始批量获取新任务 (批量大小: %d)", nodeID, config.BATCH_SIZE)
+				// utils.LogWithTime("[fetcher@%s] 🔍 开始批量获取新任务 (批量大小: %d)", nodeID, config.BATCH_SIZE)
 				tasks, err := apiClient.FetchTaskBatch(nodeID, pub, config.BATCH_SIZE, state)
 
 				if err != nil {
@@ -116,13 +116,13 @@ func TaskFetcher(ctx context.Context, nodeIDs []string, pub ed25519.PublicKey, t
 					} else if strings.Contains(err.Error(), "no task available") ||
 						strings.Contains(err.Error(), "404") {
 						utils.LogWithTime("[fetcher@%s] 💤 无任务可用，等待下次固定间隔获取", nodeID)
-					} else {
-						utils.LogWithTime("[fetcher@%s] ⚠️ 获取任务失败: %v，等待下次固定间隔获取", nodeID, err)
+						// } else {
+						// 	utils.LogWithTime("[fetcher@%s] ⚠️ 获取任务失败: %v，等待下次固定间隔获取", nodeID, err)
 					}
 					continue
 				}
 				if len(tasks) == 0 {
-					utils.LogWithTime("[fetcher@%s] 📭 批量获取返回0个任务", nodeID)
+					// utils.LogWithTime("[fetcher@%s] 📭 批量获取返回0个任务", nodeID)
 					continue
 				}
 				state.SetLastFetchTime()

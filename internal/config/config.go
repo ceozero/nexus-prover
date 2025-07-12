@@ -18,7 +18,7 @@ type Config struct {
 // 常量定义
 const (
 	// 批处理配置
-	BATCH_SIZE                = 10 // 每次获取10个任务 (增加批量大小)
+	BATCH_SIZE                = 5  // 每次获取5个任务 (增加批量大小)
 	MAX_404S_BEFORE_GIVING_UP = 3  // 减少404容忍次数，更快发现问题
 	TASK_FETCH_INTERVAL       = 1  // 1秒间隔获取任务
 	QUEUE_LOG_INTERVAL        = 30 // 30秒打印日志时间间隔
@@ -30,7 +30,7 @@ const (
 	TASKS_SUBMIT_URL = "http://192.168.1.118:8080/v3/tasks/submit"
 
 	// 队列配置 - 默认值，可通过配置文件覆盖
-	DEFAULT_TASK_QUEUE_CAPACITY = 1000 // 默认任务队列容量
+	DEFAULT_TASK_QUEUE_CAPACITY = 100 // 默认任务队列容量
 )
 
 // LoadConfig 加载配置文件
