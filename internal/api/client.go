@@ -71,6 +71,9 @@ func (c *Client) GetExistingTasks(nodeID string) ([]*pb.GetProofTaskResponse, er
 		return nil, err
 	}
 
+	// 添加调试日志
+	utils.LogWithTime("[api] GetExistingTasks响应: StatusCode=%d, ContentLength=%d", resp.StatusCode, len(respData))
+
 	if resp.StatusCode == 429 {
 		return nil, fmt.Errorf("rate limit exceeded: %s", string(respData))
 	}
@@ -79,8 +82,18 @@ func (c *Client) GetExistingTasks(nodeID string) ([]*pb.GetProofTaskResponse, er
 		return nil, fmt.Errorf("no existing tasks found")
 	}
 
+	// 处理204 No Content - 服务端无已分配任务
+	if resp.StatusCode == 204 {
+		return nil, fmt.Errorf("no existing tasks found")
+	}
+
+	// 处理500 Internal Server Error - 服务端错误
+	if resp.StatusCode == 500 {
+		return nil, fmt.Errorf("server error: %s", string(respData))
+	}
+
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("get existing tasks failed: %s", string(respData))
+		return nil, fmt.Errorf("get existing tasks failed (status=%d): %s", resp.StatusCode, string(respData))
 	}
 
 	// 解析响应
@@ -130,6 +143,9 @@ func (c *Client) GetNewTask(nodeID string, pub ed25519.PublicKey) (*pb.GetProofT
 		return nil, err
 	}
 
+	// 添加调试日志
+	utils.LogWithTime("[api] GetNewTask响应: StatusCode=%d, ContentLength=%d", resp.StatusCode, len(respData))
+
 	if resp.StatusCode == 429 {
 		return nil, fmt.Errorf("rate limit exceeded: %s", string(respData))
 	}
@@ -138,9 +154,19 @@ func (c *Client) GetNewTask(nodeID string, pub ed25519.PublicKey) (*pb.GetProofT
 		return nil, fmt.Errorf("no task available")
 	}
 
-	// if resp.StatusCode != 200 {
-	// 	return nil, fmt.Errorf("get new task failed: %s", string(respData))
-	// }
+	// 处理204 No Content - 服务端无任务
+	if resp.StatusCode == 204 {
+		return nil, fmt.Errorf("no task available")
+	}
+
+	// 处理500 Internal Server Error - 服务端错误
+	if resp.StatusCode == 500 {
+		return nil, fmt.Errorf("server error: %s", string(respData))
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("get new task failed (status=%d): %s", resp.StatusCode, string(respData))
+	}
 
 	var proofResp pb.GetProofTaskResponse
 	if err := proto.Unmarshal(respData, &proofResp); err != nil {
