@@ -36,14 +36,14 @@ func GetStats() (int64, int64, int64) {
 }
 
 // TaskFetcher 任务获取worker - 负责从API获取任务并放入队列
-func TaskFetcher(ctx context.Context, nodeIDs []string, pub ed25519.PublicKey, taskQueue *types.TaskQueue, requestDelay int, wg *sync.WaitGroup, acceptingTasks *int32) {
+func TaskFetcher(ctx context.Context, nodeIDs []string, pub ed25519.PublicKey, taskQueue *types.TaskQueue, requestDelay int, wg *sync.WaitGroup, acceptingTasks *int32, cfg *config.Config) {
 	defer wg.Done()
 	utils.LogWithTime("[fetcher] 开始任务获取，节点数: %d", len(nodeIDs))
 
 	// 为每个节点维护独立的状态
 	states := make([]*types.TaskFetchState, len(nodeIDs))
 	for i := range nodeIDs {
-		states[i] = types.NewTaskFetchState()
+		states[i] = types.NewTaskFetchState(cfg.QueueLogInterval)
 	}
 
 	apiClient := api.NewClient()
@@ -102,13 +102,13 @@ func TaskFetcher(ctx context.Context, nodeIDs []string, pub ed25519.PublicKey, t
 					state.SetPrintLogTime()
 					// utils.LogWithTime("[fetcher@%s] 🔄 循环检查中，ShouldFetch: %v", nodeID, state.ShouldFetch())
 				}
-				if !state.ShouldFetch() {
+				if !state.ShouldFetch(cfg.TaskFetchInterval) {
 					continue
 				}
 
 				// 批量获取新任务
-				// utils.LogWithTime("[fetcher@%s] 🔍 开始批量获取新任务 (批量大小: %d)", nodeID, config.BATCH_SIZE)
-				tasks, err := apiClient.FetchTaskBatch(nodeID, pub, config.BATCH_SIZE, state)
+				// utils.LogWithTime("[fetcher@%s] 🔍 开始批量获取新任务 (批量大小: %d)", nodeID, cfg.BatchSize)
+				tasks, err := apiClient.FetchTaskBatch(nodeID, pub, cfg.BatchSize, state, cfg.Max404sBeforeGivingUp)
 
 				if err != nil {
 					if utils.IsRateLimitError(err) {

@@ -102,6 +102,16 @@ cd nexus-prover/
   "wallet_address": "钱包地址",
   "request_delay": 0,
   "prover_workers": 9,
-  "task_queue_capacity": 1000
+  "task_queue_capacity": 1000,
+  "batch_size": 5,
+  "max_404s_before_giving_up": 3,
+  "task_fetch_interval": 1,
+  "queue_log_interval": 30
 }
 ```
+
+#### 配置参数说明
+- `batch_size`: 每次获取任务的批量大小（默认：5）
+- `max_404s_before_giving_up`: 404容忍次数，超过此次数停止获取（默认：3）
+- `task_fetch_interval`: 任务获取间隔，单位秒（默认：1）
+- `queue_log_interval`: 队列日志打印间隔，单位秒（默认：30）

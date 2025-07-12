@@ -119,18 +119,18 @@ type TaskFetchState struct {
 }
 
 // NewTaskFetchState 创建新的任务获取状态
-func NewTaskFetchState() *TaskFetchState {
+func NewTaskFetchState(queueLogInterval int) *TaskFetchState {
 	return &TaskFetchState{
 		lastFetchTime:    time.Now().Add(-1 * time.Second), // 允许立即首次获取
 		lastQueueLogTime: time.Now(),
-		queueLogInterval: 30 * time.Second,
+		queueLogInterval: time.Duration(queueLogInterval) * time.Second,
 		Consecutive404s:  0,
 	}
 }
 
 // ShouldFetch 检查是否应该获取任务
-func (s *TaskFetchState) ShouldFetch() bool {
-	return time.Since(s.lastFetchTime) >= 1*time.Second // 固定间隔检查
+func (s *TaskFetchState) ShouldFetch(fetchInterval int) bool {
+	return time.Since(s.lastFetchTime) >= time.Duration(fetchInterval)*time.Second
 }
 
 // SetLastFetchTime 设置获取任务的时间

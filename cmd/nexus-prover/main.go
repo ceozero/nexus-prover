@@ -85,7 +85,10 @@ func main() {
 	utils.LogWithTime("   节点数量: %d", len(cfg.NodeIDs))
 	utils.LogWithTime("   🆕 任务队列调度模式")
 	utils.LogWithTime("   🆕 队列容量: %d", cfg.TaskQueueCapacity)
-	utils.LogWithTime("   🆕 固定180秒间隔获取任务")
+	utils.LogWithTime("   🆕 批量获取大小: %d", cfg.BatchSize)
+	utils.LogWithTime("   🆕 404容忍次数: %d", cfg.Max404sBeforeGivingUp)
+	utils.LogWithTime("   🆕 任务获取间隔: %d 秒", cfg.TaskFetchInterval)
+	utils.LogWithTime("   🆕 队列日志间隔: %d 秒", cfg.QueueLogInterval)
 	utils.LogWithTime("   🆕 优先获取已分配任务")
 	utils.LogWithTime("   🆕 内存优化: 提交成功后立即释放证明数据")
 	utils.LogWithTime("   按 Ctrl+C 优雅停止程序")
@@ -111,7 +114,7 @@ func main() {
 
 	// 启动任务获取worker
 	wg.Add(1)
-	go worker.TaskFetcher(ctx, cfg.NodeIDs, pub, taskQueue, cfg.RequestDelay, &wg, &acceptingTasks)
+	go worker.TaskFetcher(ctx, cfg.NodeIDs, pub, taskQueue, cfg.RequestDelay, &wg, &acceptingTasks, cfg)
 
 	// 检查是否使用进程隔离模式
 	useProcessIsolation := *processIsolation || *processIsolationLong
@@ -225,7 +228,11 @@ func printHelp() {
 	fmt.Println("    \"wallet_address\": \"钱包地址\",       # 可以不填")
 	fmt.Println("    \"request_delay\": 0,")
 	fmt.Println("    \"prover_workers\": 9,")
-	fmt.Println("    \"task_queue_capacity\": 1000")
+	fmt.Println("    \"task_queue_capacity\": 1000,")
+	fmt.Println("    \"batch_size\": 5,                     # 每次获取任务的批量大小")
+	fmt.Println("    \"max_404s_before_giving_up\": 3,      # 404容忍次数")
+	fmt.Println("    \"task_fetch_interval\": 1,            # 任务获取间隔（秒）")
+	fmt.Println("    \"queue_log_interval\": 30             # 队列日志打印间隔（秒）")
 	fmt.Println("  }")
 	fmt.Println("")
 }

@@ -177,7 +177,7 @@ func (c *Client) GetNewTask(nodeID string, pub ed25519.PublicKey) (*pb.GetProofT
 }
 
 // FetchTaskBatch 批量获取新任务
-func (c *Client) FetchTaskBatch(nodeID string, pub ed25519.PublicKey, batchSize int, state *types.TaskFetchState) ([]*pb.GetProofTaskResponse, error) {
+func (c *Client) FetchTaskBatch(nodeID string, pub ed25519.PublicKey, batchSize int, state *types.TaskFetchState, max404s int) ([]*pb.GetProofTaskResponse, error) {
 	var tasks []*pb.GetProofTaskResponse
 
 	// 批量获取新任务
@@ -189,7 +189,7 @@ func (c *Client) FetchTaskBatch(nodeID string, pub ed25519.PublicKey, batchSize 
 			}
 			if strings.Contains(err.Error(), "no task available") {
 				state.Consecutive404s++
-				if state.Consecutive404s >= 5 {
+				if state.Consecutive404s >= max404s {
 					break
 				}
 				continue

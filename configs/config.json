@@ -1,7 +1,12 @@
 {
-  "node_ids": ["12739613"],
-  "user_id": "5ded117b-2cac-4144-96df-38f86aeeed96",
-  "wallet_address": "0x1Def29243dFB8bb14B60126cd74b50Eda1Ee9dCD",
+  "node_ids": ["601"],
+  "user_id": "",
+  "wallet_address": "",
   "request_delay": 0,
-  "prover_workers": 3
+  "prover_workers": 3,
+  "task_queue_capacity": 110,
+  "batch_size": 5,
+  "max_404s_before_giving_up": 3,
+  "task_fetch_interval": 1,
+  "queue_log_interval": 30
 }
